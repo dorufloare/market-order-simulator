@@ -36,6 +36,76 @@
 *.exe
 *.out
 *.app
+OrderBookSimulator
 
 # debug information files
 *.dwo
+
+# Build directories
+build/
+build-*/
+bin/
+lib/
+obj/
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+cmake_install.cmake
+Makefile
+*.cmake
+!CMakeLists.txt
+
+# Log files (project specific)
+logs/
+*.log
+
+# IDE and editor files
+.vscode/
+.vs/
+*.swp
+*.swo
+*~
+.idea/
+*.sublime-*
+
+# macOS specific
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows specific
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux specific
+.fuse_hidden*
+.directory
+.Trash-*
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Core dumps
+core
+core.*
+
+# Profiling and debugging
+*.prof
+vgcore.*
+callgrind.out.*
+*.gcno
+*.gcda
+
+# Package managers
+conan.lock
+vcpkg_installed/
+
+# Environment variables
+.env
+.env.local
