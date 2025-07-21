@@ -11,7 +11,7 @@ BackgroundGenerator::BackgroundGenerator(OrderBook& orderBook_)
       qtyDist(1.0, 10.0),
       userIdDist(1001, 9999),
       sideDist(0, 1),
-      typeDist(0, 4),
+      typeDist(0, 5),
       orderId(10000) {
 }
 
@@ -62,8 +62,10 @@ Order BackgroundGenerator::generateRandomOrder() {
         order.type = OrderType::MARKET;
     } else if (typeRoll == 3) {
         order.type = OrderType::STOP_LIMIT;
-    } else {
+    } else if (typeRoll == 4) {
         order.type = OrderType::STOP_MARKET;
+    } else {
+        order.type = OrderType::ICEBERG;
     }
     
     order.side = static_cast<Side>(sideDist(rng));
@@ -95,6 +97,12 @@ Order BackgroundGenerator::generateRandomOrder() {
                 order.price = 0.0;  // STOP_MARKET doesn't need limit price
             }
         }
+    } else if (order.type == OrderType::ICEBERG) {
+        // ICEBERG orders: large hidden orders with small visible portions
+        order.price = priceDist(rng);
+        order.totalQuantity = order.quantity * (3.0 + 7.0 * std::uniform_real_distribution<double>(0.0, 1.0)(rng));  // 3x to 10x larger
+        order.displayQuantity = order.quantity;  // Original quantity becomes display portion
+        order.quantity = order.totalQuantity;  // Set full quantity for order processing
     } else {
         // Regular LIMIT/MARKET orders
         order.price = priceDist(rng);

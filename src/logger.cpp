@@ -23,7 +23,7 @@ Logger::Logger() {
 
     ordersFile.seekp(0, std::ios::end);
     if (ordersFile.tellp() == 0) {
-        ordersFile << "Timestamp,OrderID,UserID,Type,Side,Price,Quantity,TriggerPrice,Status\n";
+        ordersFile << "Timestamp,OrderID,UserID,Type,Side,Price,Quantity,TriggerPrice,TotalQuantity,DisplayQuantity,Status\n";
     }
     
     matchesFile.seekp(0, std::ios::end);
@@ -71,6 +71,7 @@ void Logger::logOrder(const Order& order) {
             case OrderType::MARKET: orderTypeStr = "MARKET"; break;
             case OrderType::STOP_LIMIT: orderTypeStr = "STOP_LIMIT"; break;
             case OrderType::STOP_MARKET: orderTypeStr = "STOP_MARKET"; break;
+            case OrderType::ICEBERG: orderTypeStr = "ICEBERG"; break;
         }
         
         ordersFile << getCurrentTimestamp() << ","
@@ -85,6 +86,13 @@ void Logger::logOrder(const Order& order) {
             ordersFile << std::fixed << std::setprecision(2) << order.triggerPrice << ",";
         } else {
             ordersFile << "0.00,";
+        }
+        
+        if (order.type == OrderType::ICEBERG) {
+            ordersFile << std::fixed << std::setprecision(2) << order.totalQuantity << ","
+                      << std::fixed << std::setprecision(2) << order.displayQuantity << ",";
+        } else {
+            ordersFile << "0.00,0.00,";
         }
         
         ordersFile << "SUBMITTED" << "\n";
@@ -118,6 +126,7 @@ void Logger::logRestingOrder(const Order& order) {
             case OrderType::MARKET: orderTypeStr = "MARKET"; break;
             case OrderType::STOP_LIMIT: orderTypeStr = "STOP_LIMIT"; break;
             case OrderType::STOP_MARKET: orderTypeStr = "STOP_MARKET"; break;
+            case OrderType::ICEBERG: orderTypeStr = "ICEBERG"; break;
         }
         
         ordersFile << getCurrentTimestamp() << ","
@@ -132,6 +141,13 @@ void Logger::logRestingOrder(const Order& order) {
             ordersFile << std::fixed << std::setprecision(2) << order.triggerPrice << ",";
         } else {
             ordersFile << "0.00,";
+        }
+        
+        if (order.type == OrderType::ICEBERG) {
+            ordersFile << std::fixed << std::setprecision(2) << order.totalQuantity << ","
+                      << std::fixed << std::setprecision(2) << order.displayQuantity << ",";
+        } else {
+            ordersFile << "0.00,0.00,";
         }
         
         ordersFile << "RESTING" << "\n";

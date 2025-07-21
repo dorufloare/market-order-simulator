@@ -8,7 +8,8 @@ enum class OrderType {
     LIMIT,
     MARKET,
     STOP_LIMIT,
-    STOP_MARKET
+    STOP_MARKET,
+    ICEBERG
 };
 
 enum class Side {
@@ -24,6 +25,8 @@ struct Order {
     double price;
     double quantity;
     double triggerPrice = 0.0;
+    double totalQuantity = 0.0;
+    double displayQuantity = 0.0;
     std::chrono::high_resolution_clock::time_point timestamp;
 
     friend std::ostream& operator<<(std::ostream& os, const Order& order) {
@@ -36,6 +39,7 @@ struct Order {
             case OrderType::MARKET: os << "MARKET"; break;
             case OrderType::STOP_LIMIT: os << "STOP_LIMIT"; break;
             case OrderType::STOP_MARKET: os << "STOP_MARKET"; break;
+            case OrderType::ICEBERG: os << "ICEBERG"; break;
         }
         
         os << ", side: " << (order.side == Side::BUY ? "BUY" : "SELL")
@@ -44,6 +48,11 @@ struct Order {
            
         if (order.type == OrderType::STOP_LIMIT || order.type == OrderType::STOP_MARKET) {
             os << ", triggerPrice: " << order.triggerPrice;
+        }
+        
+        if (order.type == OrderType::ICEBERG) {
+            os << ", totalQuantity: " << order.totalQuantity
+               << ", displayQuantity: " << order.displayQuantity;
         }
         
         os << ", timestamp: " << std::chrono::duration_cast<std::chrono::milliseconds>(order.timestamp.time_since_epoch()).count()

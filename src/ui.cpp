@@ -40,6 +40,7 @@ void UI::interactiveInput() {
     std::cout << "Commands:\n";
     std::cout << "- <BUY/SELL> <LIMIT/MARKET> <price> <quantity> : Place an order\n";
     std::cout << "- <BUY/SELL> <STOP_LIMIT/STOP_MARKET> <trigger_price> <limit_price> <quantity> : Place a STOP order\n";
+    std::cout << "- <BUY/SELL> <ICEBERG> <price> <total_quantity> <display_quantity> : Place an ICEBERG order\n";
     std::cout << "- price : Show current last traded price\n";
     std::cout << "- help : Show detailed help\n";
     std::cout << "- stats : Show performance statistics\n";
@@ -48,6 +49,7 @@ void UI::interactiveInput() {
     std::cout << "  BUY LIMIT 100.5 10        - Buy at $100.50 or better\n";
     std::cout << "  SELL MARKET 0 5           - Sell immediately at market price\n";
     std::cout << "  SELL STOP_LIMIT 95.0 94.5 10 - If price drops to $95, sell at $94.50\n";
+    std::cout << "  BUY ICEBERG 100.0 1000 100   - Buy 1000 shares, showing only 100 at a time\n";
     std::cout << "  BUY STOP_MARKET 105.0 0 5     - If price rises to $105, buy at market\n\n";
 
     while (running.load()) {
@@ -83,15 +85,21 @@ void UI::interactiveInput() {
             std::cout << "  - Format: BUY/SELL STOP_LIMIT <trigger_price> <limit_price> <quantity>\n";
             std::cout << "• STOP_MARKET orders: Trigger when price hits trigger, then become MARKET orders\n";
             std::cout << "  - Always executes at current market price when triggered\n";
-            std::cout << "  - Format: BUY/SELL STOP_MARKET <trigger_price> 0 <quantity>\n\n";
+            std::cout << "  - Format: BUY/SELL STOP_MARKET <trigger_price> 0 <quantity>\n";
+            std::cout << "• ICEBERG orders: Hide large order size by showing only small portions\n";
+            std::cout << "  - Only display_quantity is visible in the order book\n";
+            std::cout << "  - When visible portion fills, more shares automatically appear\n";
+            std::cout << "  - Format: BUY/SELL ICEBERG <price> <total_quantity> <display_quantity>\n\n";
             std::cout << "Examples:\n";
-            std::cout << "  BUY LIMIT 95.50 10           - Buy 10 units at $95.50 or better\n";
-            std::cout << "  SELL MARKET 0 5              - Sell 5 units at best available price\n";
-            std::cout << "  SELL STOP_LIMIT 90.0 89.5 10 - If price drops to $90, try to sell at $89.50\n";
-            std::cout << "  BUY STOP_MARKET 110.0 0 5    - If price rises to $110, buy at market\n\n";
-            std::cout << "STOP Order Strategy Tips:\n";
+            std::cout << "  BUY LIMIT 95.50 10              - Buy 10 units at $95.50 or better\n";
+            std::cout << "  SELL MARKET 0 5                 - Sell 5 units at best available price\n";
+            std::cout << "  SELL STOP_LIMIT 90.0 89.5 10    - If price drops to $90, try to sell at $89.50\n";
+            std::cout << "  BUY STOP_MARKET 110.0 0 5       - If price rises to $110, buy at market\n";
+            std::cout << "  BUY ICEBERG 100.0 1000 100      - Buy 1000 units, showing only 100 at a time\n\n";
+            std::cout << "Strategy Tips:\n";
             std::cout << "• Use STOP SELL orders below current price as stop-losses\n";
             std::cout << "• Use STOP BUY orders above current price for breakout trades\n";
+            std::cout << "• Use ICEBERG orders to hide large positions from other traders\n";
             std::cout << "• STOP_MARKET is safer - guarantees execution at market price\n";
             std::cout << "• Exchange enforces price collars - unrealistic limits get rejected\n\n";
             continue;
@@ -120,18 +128,29 @@ void UI::interactiveInput() {
         Side side = (sideStr == "BUY") ? Side::BUY : Side::SELL;
 
         bool isStopOrder = (typeStr == "STOP_LIMIT" || typeStr == "STOP_MARKET");
+        bool isIcebergOrder = (typeStr == "ICEBERG");
         
-        if (!isStopOrder && typeStr != "LIMIT" && typeStr != "MARKET") {
-            std::cout << "Invalid order type. Use 'LIMIT', 'MARKET', 'STOP_LIMIT', or 'STOP_MARKET'.\n";
+        if (!isStopOrder && !isIcebergOrder && typeStr != "LIMIT" && typeStr != "MARKET") {
+            std::cout << "Invalid order type. Use 'LIMIT', 'MARKET', 'STOP_LIMIT', 'STOP_MARKET', or 'ICEBERG'.\n";
             std::cin.clear();
             std::cin.ignore(10000, '\n');
             continue;
         }
 
+        double totalQty = 0.0;
+        double displayQty = 0.0;
+
         if (isStopOrder) {
             if (!(std::cin >> triggerPrice >> price >> qty)) {
                 std::cout << "Invalid format for STOP order. Use: " << sideStr << " " << typeStr << " <trigger_price> <limit_price> <quantity>\n";
                 std::cout << "For STOP_MARKET orders, use 0 for limit_price.\n";
+                std::cin.clear();
+                std::cin.ignore(10000, '\n');
+                continue;
+            }
+        } else if (isIcebergOrder) {
+            if (!(std::cin >> price >> totalQty >> displayQty)) {
+                std::cout << "Invalid format for ICEBERG order. Use: " << sideStr << " " << typeStr << " <price> <total_quantity> <display_quantity>\n";
                 std::cin.clear();
                 std::cin.ignore(10000, '\n');
                 continue;
@@ -146,7 +165,21 @@ void UI::interactiveInput() {
         }
 
         // Validation
-        if (qty <= 0) {
+        if (isIcebergOrder) {
+            if (totalQty <= 0 || displayQty <= 0) {
+                std::cout << "Both total quantity and display quantity must be positive.\n";
+                continue;
+            }
+            if (displayQty >= totalQty) {
+                std::cout << "Display quantity must be less than total quantity.\n";
+                continue;
+            }
+            if (price <= 0) {
+                std::cout << "Price must be positive for ICEBERG orders.\n";
+                continue;
+            }
+            qty = totalQty;  // Set qty for the order creation
+        } else if (qty <= 0) {
             std::cout << "Quantity must be positive.\n";
             continue;
         }
@@ -191,8 +224,10 @@ void UI::interactiveInput() {
             orderType = OrderType::MARKET;
         } else if (typeStr == "STOP_LIMIT") {
             orderType = OrderType::STOP_LIMIT;
-        } else {
+        } else if (typeStr == "STOP_MARKET") {
             orderType = OrderType::STOP_MARKET;
+        } else {
+            orderType = OrderType::ICEBERG;
         }
 
         Order order {
@@ -203,6 +238,8 @@ void UI::interactiveInput() {
             price,
             qty,
             triggerPrice,
+            isIcebergOrder ? totalQty : 0.0,
+            isIcebergOrder ? displayQty : 0.0,
             std::chrono::high_resolution_clock::now()
         };
 
@@ -217,6 +254,11 @@ void UI::interactiveInput() {
             }
             std::cout << " - Qty: " << qty << "\n";
             std::cout << "🎯 Your STOP order is now monitoring price movements...\n";
+        } else if (isIcebergOrder) {
+            std::cout << "✓ ICEBERG Order submitted: " << sideStr << " " << typeStr 
+                      << " - Total: " << std::fixed << std::setprecision(0) << totalQty 
+                      << " - Display: " << displayQty << " @ $" << std::setprecision(2) << price << "\n";
+            std::cout << "🧊 Your ICEBERG order is hiding " << (totalQty - displayQty) << " shares behind the scenes...\n";
         } else {
             std::cout << "✓ Order submitted: " << sideStr << " " << typeStr << " " << qty << " @ $" << std::fixed << std::setprecision(2) << price << "\n";
         }

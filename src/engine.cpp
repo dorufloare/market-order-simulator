@@ -1,7 +1,7 @@
 #include "engine.hpp"
 #include "benchmark.hpp"
 
-Engine::Engine(size_t workerCount) : running(false), pool(workerCount), orderBook(workerCount) {}
+Engine::Engine(size_t workerCount) : running(false), pool(workerCount), orderBook() {}
 
 Engine::~Engine() {
     stop();
