@@ -15,8 +15,16 @@ public:
 private:
     std::map<double, std::deque<Order>> asks;
     std::map<double, std::deque<Order>> bids;
+    
+    // STOP order books - separate from regular orders
+    std::map<double, std::deque<Order>> stopAsks;  // STOP SELL orders
+    std::map<double, std::deque<Order>> stopBids;  // STOP BUY orders
 
     std::mutex shardMutex;
+    
+    void addToStopBook(const Order& order);
+    void checkStopTriggers(double lastTradePrice, const std::function<void(double)>& onMatchPrice);
+    void processTriggeredOrder(const Order& order, const std::function<void(double)>& onMatchPrice);
 };
 
 class OrderBook {

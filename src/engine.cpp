@@ -44,7 +44,6 @@ void Engine::dispatchOrders() {
             BENCHMARK_TIMER("Order_Queue_Wait");
             std::unique_lock<std::mutex> lock(queueMutex);
 
-            // Wait until there's an order or the engine stops
             cv.wait(lock, [&]() { return !orderQueue.empty() || !running; });
 
             if (!running && orderQueue.empty())
