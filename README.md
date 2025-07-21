@@ -292,23 +292,6 @@ Iceberg_Order_Refill,0.125,0.100,0.150,5,8000.0
 
 ---
 
-## 🚀 Future Enhancements
-
-### Planned Features
-- [ ] **Time-in-Force Orders:** IOC (Immediate or Cancel), FOK (Fill or Kill)
-- [ ] **Order Cancellation:** Cancel resting orders by ID
-- [ ] **Market Depth Display:** Real-time order book visualization
-- [ ] **Historical Data Export:** Trade history and analytics
-- [ ] **Network Interface:** TCP/UDP connectivity for external systems
-
-### Performance Targets
-- [ ] **Latency:** Sub-100 microsecond order processing
-- [ ] **Throughput:** 100,000+ orders/second sustained
-- [ ] **Scalability:** Multi-symbol order book support
-- [ ] **Memory:** Zero-copy message passing optimization
-
----
-
 ## 📄 License
 
 This project is open source and available under the [MIT License](LICENSE).
