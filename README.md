@@ -4,19 +4,19 @@ A high-performance, multi-threaded order book simulator built in C++17. Designed
 
 ## ✨ Key Features
 
-### 🔥 **High-Performance Architecture**
+### **High-Performance Architecture**
 - Multi-threaded engine with automatic CPU core detection
 - Unified order book design for optimal cross-price matching
 - Background trading simulation generating realistic market activity
 - **Performance:** 15.4K+ matches/sec, 4.2M+ volume/sec, 14.4K+ orders/sec
 
-### 🧊 **Advanced ICEBERG Orders**
+###  **Advanced ICEBERG Orders**
 - Hide large orders by showing only small portions at a time
 - Automatic refill mechanism when visible portions are executed
 - Prevents market impact from large institutional orders
 - Supports both BUY and SELL ICEBERG orders with configurable display quantities
 
-### 📊 **Professional Order Types**
+### **Professional Order Types**
 - **LIMIT orders:** Execute at specified price or better
 - **MARKET orders:** Execute immediately at best available price  
 - **STOP_LIMIT orders:** Trigger at specified price, then execute as LIMIT
@@ -24,13 +24,13 @@ A high-performance, multi-threaded order book simulator built in C++17. Designed
 - **ICEBERG orders:** Large orders with hidden quantities
 - Price collar validation prevents unrealistic STOP order executions
 
-### 📈 **Real-Time Performance Monitoring**
+### **Real-Time Performance Monitoring**
 - Microsecond-precision timing measurements
 - Live throughput and latency statistics
 - Comprehensive benchmarking with CSV export
 - Memory-safe operation under high-stress conditions
 
-### 🏗️ **Enterprise Logging**
+### **Logging**
 - Thread-safe logging across all components
 - Detailed order lifecycle tracking
 - Trade execution logs with timestamps
@@ -64,10 +64,10 @@ make -j$(nproc)
 ### Live Performance Demo
 ```
 🚀 Starting Market Order Simulator with Performance Benchmarking...
-🖥️  Hardware threads detected: 8
-⚙️  Using 8 worker threads
-🔥 Starting high-volume background trading simulation...
-📈 Background generator started
+    Hardware threads detected: 8
+    Using 8 worker threads
+    Starting high-volume background trading simulation...
+    Background generator started
 
 === Market Order Simulator ===
 Commands:
@@ -125,7 +125,7 @@ Examples:
 # STOP-LOSS: Sell if price drops to $95
 > SELL STOP_LIMIT 95.0 94.5 100
 ✓ STOP Order submitted: SELL STOP_LIMIT - Trigger: $95.00 → Limit: $94.50 - Qty: 100.00
-🎯 Your STOP order is now monitoring price movements...
+  Your STOP order is now monitoring price movements...
 [STOP] Your STOP-LIMIT SELL order placed. Will trigger when price <= $95
 
 # BREAKOUT: Buy if price rises above $105
@@ -232,7 +232,7 @@ All Activity → Thread-Safe Logging → CSV Files
 
 ---
 
-## 📊 Enterprise Logging
+## 📊 Logging
 
 The simulator creates detailed CSV logs in the `build/logs/` directory:
 
@@ -291,23 +291,6 @@ Iceberg_Order_Refill,0.125,0.100,0.150,5,8000.0
 - ✅ No iterator invalidation crashes
 - ✅ Thread-safe operation verified
 - ✅ High-volume stress testing passed
-
----
-
-## 🚀 Future Enhancements
-
-### Planned Features
-- [ ] **Time-in-Force Orders:** IOC (Immediate or Cancel), FOK (Fill or Kill)
-- [ ] **Order Cancellation:** Cancel resting orders by ID
-- [ ] **Market Depth Display:** Real-time order book visualization
-- [ ] **Historical Data Export:** Trade history and analytics
-- [ ] **Network Interface:** TCP/UDP connectivity for external systems
-
-### Performance Targets
-- [ ] **Latency:** Sub-100 microsecond order processing
-- [ ] **Throughput:** 100,000+ orders/second sustained
-- [ ] **Scalability:** Multi-symbol order book support
-- [ ] **Memory:** Zero-copy message passing optimization
 
 ---
 
