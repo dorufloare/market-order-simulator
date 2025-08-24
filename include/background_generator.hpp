@@ -19,7 +19,7 @@ private:
 
     OrderBook& orderBook;
     std::atomic<bool> running;
-    std::thread bgThread;
+    std::thread bgThread;  
     
     // Random number generators
     std::mt19937 rng;
@@ -29,5 +29,5 @@ private:
     std::uniform_int_distribution<int> sideDist;
     std::uniform_int_distribution<int> typeDist;
     
-    int orderId;
+    int orderId; 
 };

@@ -11,7 +11,7 @@ BackgroundGenerator::BackgroundGenerator(OrderBook& orderBook_)
       qtyDist(1.0, 10.0),
       userIdDist(1001, 9999),
       sideDist(0, 1),
-      typeDist(0, 5),
+      typeDist(0, 19),
       orderId(10000) {
 }
 
@@ -46,7 +46,7 @@ void BackgroundGenerator::tradeLoop() {
         }
 
         // 2ms sleep = ~500 orders/sec
-        std::this_thread::sleep_for(std::chrono::milliseconds(2));
+        //std::this_thread::sleep_for(std::chrono::milliseconds(2));
     }
 }
 
@@ -56,13 +56,13 @@ Order BackgroundGenerator::generateRandomOrder() {
     order.userId = userIdDist(rng);
     
     int typeRoll = typeDist(rng);
-    if (typeRoll <= 1) {
+    if (typeRoll <= 9) {
         order.type = OrderType::LIMIT;
-    } else if (typeRoll == 2) {
+    } else if (typeRoll <= 12) {
         order.type = OrderType::MARKET;
-    } else if (typeRoll == 3) {
+    } else if (typeRoll <= 15) {
         order.type = OrderType::STOP_LIMIT;
-    } else if (typeRoll == 4) {
+    } else if (typeRoll <= 17) {
         order.type = OrderType::STOP_MARKET;
     } else {
         order.type = OrderType::ICEBERG;
@@ -72,39 +72,32 @@ Order BackgroundGenerator::generateRandomOrder() {
     order.quantity = qtyDist(rng);
     
     if (order.type == OrderType::STOP_LIMIT || order.type == OrderType::STOP_MARKET) {
-        // Get current market price for realistic STOP order generation
         double currentMarketPrice = orderBook.getLastTradedPrice();
         if (currentMarketPrice <= 0) {
-            currentMarketPrice = 95.0;  // Default fallback price
+            currentMarketPrice = 95.0;  
         }
         
         if (order.side == Side::SELL) {
-            // STOP SELL: trigger below current price (stop-loss)
             order.triggerPrice = currentMarketPrice * (0.85 + 0.10 * std::uniform_real_distribution<double>(0.0, 1.0)(rng));
             if (order.type == OrderType::STOP_LIMIT) {
-                // Set limit price within collar range when triggered
                 order.price = order.triggerPrice * (0.95 + 0.09 * std::uniform_real_distribution<double>(0.0, 1.0)(rng));
             } else {
-                order.price = 0.0;  // STOP_MARKET doesn't need limit price
+                order.price = 0.0;  
             }
         } else {
-            // STOP BUY: trigger above current price (breakout)
             order.triggerPrice = currentMarketPrice * (1.05 + 0.10 * std::uniform_real_distribution<double>(0.0, 1.0)(rng));
             if (order.type == OrderType::STOP_LIMIT) {
-                // Set limit price within collar range when triggered
                 order.price = order.triggerPrice * (1.01 + 0.04 * std::uniform_real_distribution<double>(0.0, 1.0)(rng));
             } else {
-                order.price = 0.0;  // STOP_MARKET doesn't need limit price
+                order.price = 0.0;  
             }
         }
     } else if (order.type == OrderType::ICEBERG) {
-        // ICEBERG orders: large hidden orders with small visible portions
         order.price = priceDist(rng);
-        order.totalQuantity = order.quantity * (3.0 + 7.0 * std::uniform_real_distribution<double>(0.0, 1.0)(rng));  // 3x to 10x larger
-        order.displayQuantity = order.quantity;  // Original quantity becomes display portion
-        order.quantity = order.totalQuantity;  // Set full quantity for order processing
+        order.totalQuantity = order.quantity * (3.0 + 5.0 * std::uniform_real_distribution<double>(0.0, 1.0)(rng));  
+        order.displayQuantity = order.quantity; 
+        order.quantity = order.totalQuantity;  
     } else {
-        // Regular LIMIT/MARKET orders
         order.price = priceDist(rng);
     }
     

@@ -8,7 +8,7 @@ A high-performance, multi-threaded order book simulator built in C++17. Designed
 - Multi-threaded engine with automatic CPU core detection
 - Unified order book design for optimal cross-price matching
 - Background trading simulation generating realistic market activity
-- **Performance:** 15K+ matches/sec, 111K+ volume/sec, 400+ orders/sec
+- **Performance:** 15.4K+ matches/sec, 4.2M+ volume/sec, 14.4K+ orders/sec
 
 ### 🧊 **Advanced ICEBERG Orders**
 - Hide large orders by showing only small portions at a time
@@ -101,7 +101,7 @@ Examples:
 
 # Sell 50 shares at current market price
 > SELL MARKET 0 50
-✓ Order submitted: SELL MARKET 50 @ $0.00
+✓ Order submitted: SELL MARKET 50 @ Market ($98.75)
 [MATCH] You sold 50 units @ $98.75
 ```
 
@@ -139,26 +139,27 @@ Examples:
 ```bash
 > stats
 📊 === REAL-TIME PERFORMANCE STATS ===
-Program Runtime: 61.10s
+Program Runtime: 75.58s
 
 📈 Counters:
-  Volume Traded: 6799315 (111278.6/sec)
-  Orders Matched: 25046 (409.9/sec)
-  Background Orders Generated: 23759 (388.8/sec)
-  Iceberg Orders Refilled: 4607 (75.4/sec)
-  Stop Orders Triggered: 5923 (96.9/sec)
-  Orders Resting: 13315 (217.9/sec)
-  Stop Orders Placed: 8061 (131.9/sec)
-  User Orders Submitted: 4 (0.1/sec)
+  Volume Traded: 317222450 (4197191.2/sec)
+  Orders Matched: 1165898 (15426.1/sec)
+  Background Orders Generated: 1090003 (14421.9/sec)
+  Iceberg Orders Refilled: 212889 (2816.7/sec)
+  Stop Orders Triggered: 281108 (3719.4/sec)
+  Orders Resting: 617053 (8164.3/sec)
+  Stop Orders Placed: 362859 (4801.0/sec)
+  User Orders Submitted: 5 (0.1/sec)
 
 ⏱️  Timing Statistics:
 Operation                          Count       Avg(ms)     Min(ms)     Max(ms)     Throughput(ops/sec)
 -----------------------------------------------------------------------------------------------
-Background Order Generation        23759       0.067       0.008       7.053       14877.6
-OrderBook Match                    23763       0.066       0.008       7.050       15201.8
-Stop Trigger Check                 8266        0.043       0.000       0.994       23091.4
-Order Processing                   4           0.294       0.110       0.737       3403.2
-Order Submission                   4           0.010       0.007       0.013       103225.8
+Background Order Generation        1090003     0.069       0.004       24.842      14439.0
+OrderBook Match                    1090008     0.069       0.003       36.279      14463.5
+Stop Trigger Check                 388570      0.165       0.000       24.765      6043.7
+Order Processing                   5           21.126      9.110       36.279      47.3
+Order Submission                   5           0.008       0.003       0.020       120241.4
+Order Queue Wait                   6           12596.924   5394.187    23218.830   0.1
 ```
 
 ---
@@ -207,18 +208,19 @@ All Activity → Thread-Safe Logging → CSV Files
 
 ### Live Performance Metrics
 ```
-🏆 === PRODUCTION PERFORMANCE (61+ second sustained test) ===
+🏆 === PRODUCTION PERFORMANCE (75+ second sustained test) ===
 ┌─────────────────────────────────────────────────────────┐
 │ Metric                    │ Value                       │
 ├─────────────────────────────────────────────────────────┤
-│ Volume Throughput         │ 111,278+ shares/sec         │
-│ Order Matching Engine     │ 15,201+ matches/sec         │
-│ Background Generation     │ 14,877+ orders/sec          │
-│ STOP Trigger Checks       │ 23,091+ ops/sec             │
-│ ICEBERG Refill Rate       │ 75+ refills/sec             │
-│ STOP Order Triggers       │ 96+ triggers/sec            │
-│ Order Processing Latency  │ 0.066ms average             │
-│ Order Submission Speed    │ 103,225+ orders/sec         │
+│ Volume Throughput         │ 4,197,191+ shares/sec       │
+│ Order Matching Engine     │ 15,426+ matches/sec         │
+│ Background Generation     │ 14,439+ orders/sec          │
+│ ICEBERG Refill Rate       │ 2,816+ refills/sec          │
+│ STOP Order Triggers       │ 3,719+ triggers/sec         │
+│ STOP Trigger Checks       │ 6,043+ ops/sec              │
+│ Order Processing Latency  │ 0.069ms average             │
+│ Order Submission Speed    │ 120,241+ orders/sec         │
+│ Total Volume Processed    │ 317M+ shares (75 seconds)   │
 └─────────────────────────────────────────────────────────┘
 ```
 

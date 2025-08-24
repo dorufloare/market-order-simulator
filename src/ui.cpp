@@ -260,7 +260,12 @@ void UI::interactiveInput() {
                       << " - Display: " << displayQty << " @ $" << std::setprecision(2) << price << "\n";
             std::cout << "🧊 Your ICEBERG order is hiding " << (totalQty - displayQty) << " shares behind the scenes...\n";
         } else {
-            std::cout << "✓ Order submitted: " << sideStr << " " << typeStr << " " << qty << " @ $" << std::fixed << std::setprecision(2) << price << "\n";
+            if (orderType == OrderType::MARKET) {
+                double currentPrice = engine.getOrderBook().getLastTradedPrice();
+                std::cout << "✓ Order submitted: " << sideStr << " " << typeStr << " " << qty << " @ Market ($" << std::fixed << std::setprecision(2) << currentPrice << ")\n";
+            } else {
+                std::cout << "✓ Order submitted: " << sideStr << " " << typeStr << " " << qty << " @ $" << std::fixed << std::setprecision(2) << price << "\n";
+            }
         }
     }
 
