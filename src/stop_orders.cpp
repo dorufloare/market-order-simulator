@@ -66,7 +66,7 @@ void OrderBook::checkStopTriggers(double lastTradePrice, const std::function<voi
                               << " order\n";
                 }
                 
-                processTriggeredOrder(triggeredOrder, onMatchPrice);
+                match(triggeredOrder, onMatchPrice);
             }
             
             it = stopAsks.erase(it);  
@@ -127,7 +127,7 @@ void OrderBook::checkStopTriggers(double lastTradePrice, const std::function<voi
                               << " order\n";
                 }
                 
-                processTriggeredOrder(triggeredOrder, onMatchPrice);
+                match(triggeredOrder, onMatchPrice);
             }
             
             auto forwardIt = std::next(it).base();
@@ -139,83 +139,3 @@ void OrderBook::checkStopTriggers(double lastTradePrice, const std::function<voi
     }
 }
 
-void OrderBook::processTriggeredOrder(const Order& order, const std::function<void(double)>& onMatchPrice) {    
-    auto& oppositeBook = (order.side == Side::BUY) ? asks : bids;
-    auto& sameSideBook = (order.side == Side::BUY) ? bids : asks;
-
-    double remainingQty = order.quantity;
-    double matchedPrice = 0.0;
-    bool matched = false;
-
-    for (auto it = oppositeBook.begin(); it != oppositeBook.end() && remainingQty > 0;) {
-        double bookPrice = it->first;
-
-        bool priceMatches = false;
-        if (order.type == OrderType::MARKET) {
-            priceMatches = true;
-        } else if (order.side == Side::BUY) {
-            priceMatches = order.price >= bookPrice;
-        } else {
-            priceMatches = order.price <= bookPrice;
-        }
-
-        if (!priceMatches)
-            break;
-
-        auto& queue = it->second;
-        while (!queue.empty() && remainingQty > 0) {
-            Order& restingOrder = queue.front();
-
-            double tradeQty = std::min(remainingQty, restingOrder.quantity);
-            matchedPrice = restingOrder.price;
-            matched = true;
-
-            Logger::getInstance().logMatch(order, restingOrder, matchedPrice, tradeQty);
-            Benchmark::getInstance().incrementCounter("Orders_Matched");
-            Benchmark::getInstance().addToCounter("Volume_Traded", static_cast<long>(tradeQty * 100));
-
-            if (order.userId == 0) {
-                std::cout << "[MATCH] You "
-                          << ((order.side == Side::BUY) ? "bought" : "sold")
-                          << " " << tradeQty << " units @ $" << matchedPrice << "\n";
-            } else if (restingOrder.userId == 0) {
-                std::cout << "[MATCH] Your resting " 
-                          << ((restingOrder.side == Side::BUY) ? "BUY" : "SELL")
-                          << " order executed: " << tradeQty << " units @ $" << matchedPrice << "\n";
-            }
-
-            remainingQty -= tradeQty;
-            restingOrder.quantity -= tradeQty;
-
-            if (restingOrder.quantity <= 0) {
-                queue.pop_front();
-            }
-        }
-
-        if (queue.empty()) {
-            it = oppositeBook.erase(it);
-        } else {
-            ++it;
-        }
-    }
-
-    if (matched) {
-        onMatchPrice(matchedPrice);
-    }
-
-    if (remainingQty > 0 && order.type == OrderType::LIMIT) {
-        Order remainingOrder = order;
-        remainingOrder.quantity = remainingQty;
-
-        sameSideBook[order.price].push_back(remainingOrder);
-        
-        Logger::getInstance().logRestingOrder(remainingOrder);
-        Benchmark::getInstance().incrementCounter("Orders_Resting");
-        
-        if (order.userId == 0) {
-            std::cout << "[RESTING] Your " << ((order.side == Side::BUY) ? "BUY" : "SELL")
-                      << " order for " << remainingQty << " units @ $" << order.price 
-                      << " is now in the order book waiting for a match.\n";
-        }
-    }
-}

@@ -45,65 +45,70 @@ void OrderBook::match(const Order& order, const std::function<void(double)>& onM
         Benchmark::getInstance().incrementCounter("Orders_Processed");
     }
 
-    auto& oppositeBook = (workingOrder.side == Side::BUY) ? asks : bids;
-    auto& sameSideBook = (workingOrder.side == Side::BUY) ? bids : asks;
-
     double remainingQty = workingOrder.quantity;
     double matchedPrice = 0.0;
     bool matched = false;
 
-    for (auto it = oppositeBook.begin(); it != oppositeBook.end() && remainingQty > 0;) {
-        double bookPrice = it->first;
-
-        bool priceMatches = false;
-        if (workingOrder.type == OrderType::MARKET) {
-            priceMatches = true;
-        } else if (workingOrder.side == Side::BUY) {
-            priceMatches = workingOrder.price >= bookPrice;
-        } else {
-            priceMatches = workingOrder.price <= bookPrice;
-        }
-
-        if (!priceMatches)
-            break;
-
-        auto& queue = it->second;
+    auto processQueue = [&](auto& queue, bool isBuy) {
         while (!queue.empty() && remainingQty > 0) {
             Order& restingOrder = queue.front();
-
             double tradeQty = std::min(remainingQty, restingOrder.quantity);
             matchedPrice = restingOrder.price;
             matched = true;
-
             Logger::getInstance().logMatch(workingOrder, restingOrder, matchedPrice, tradeQty);
             Benchmark::getInstance().incrementCounter("Orders_Matched");
             Benchmark::getInstance().addToCounter("Volume_Traded", static_cast<long>(tradeQty * 100));
-
             if (workingOrder.userId == 0) {
-                std::cout << "[MATCH] You "
-                          << ((workingOrder.side == Side::BUY) ? "bought" : "sold")
-                          << " " << tradeQty << " units @ $" << matchedPrice << "\n";
+                std::cout << (isBuy ? "[MATCH] You bought " : "[MATCH] You sold ") << tradeQty << " units @ $" << matchedPrice << "\n";
             } else if (restingOrder.userId == 0) {
-                std::cout << "[MATCH] Your resting " 
-                          << ((restingOrder.side == Side::BUY) ? "BUY" : "SELL")
-                          << " order executed: " << tradeQty << " units @ $" << matchedPrice << "\n";
+                std::cout << (isBuy ? "[MATCH] Your resting BUY order executed: " : "[MATCH] Your resting SELL order executed: ") << tradeQty << " units @ $" << matchedPrice << "\n";
             }
-
             remainingQty -= tradeQty;
             restingOrder.quantity -= tradeQty;
-
             if (restingOrder.quantity <= 0) {
                 Order fullyExecutedOrder = restingOrder;
                 queue.pop_front();
                 refillIcebergOrder(fullyExecutedOrder, tradeQty, onMatchPrice);
             }
         }
+    };
 
-        if (queue.empty()) {
-            it = oppositeBook.erase(it);
+    auto matchLoop = [&](auto& book, bool reverse, bool isBuy) {
+        if (reverse) {
+            for (auto it = book.rbegin(); it != book.rend() && remainingQty > 0; ) {
+                double bookPrice = it->first;
+                bool priceMatches = (workingOrder.type == OrderType::MARKET) ? true : (workingOrder.price <= bookPrice);
+                if (!priceMatches) break;
+                auto& queue = it->second;
+                processQueue(queue, isBuy);
+                if (queue.empty()) {
+                    auto eraseIt = it.base();
+                    --eraseIt;
+                    it = std::reverse_iterator<decltype(book.erase(eraseIt))>(book.erase(eraseIt));
+                } else {
+                    ++it;
+                }
+            }
         } else {
-            ++it;
+            for (auto it = book.begin(); it != book.end() && remainingQty > 0; ) {
+                double bookPrice = it->first;
+                bool priceMatches = (workingOrder.type == OrderType::MARKET) ? true : (workingOrder.price >= bookPrice);
+                if (!priceMatches) break;
+                auto& queue = it->second;
+                processQueue(queue, isBuy);
+                if (queue.empty()) {
+                    it = book.erase(it);
+                } else {
+                    ++it;
+                }
+            }
         }
+    };
+
+    if (workingOrder.side == Side::BUY) {
+        matchLoop(asks, false, true);
+    } else {
+        matchLoop(bids, true, false);
     }
 
     if (matched) {
@@ -113,20 +118,17 @@ void OrderBook::match(const Order& order, const std::function<void(double)>& onM
 
     if (remainingQty > 0) {
         if (order.type == OrderType::ICEBERG) {
-            // For ICEBERG orders, add the full order to ICEBERG book
-            // but only show the display quantity in the normal book
-            Order remainingOrder = order;  // Use original order, not workingOrder
+            Order remainingOrder = order;
             remainingOrder.quantity = std::min(remainingQty, order.displayQuantity);
             remainingOrder.type = OrderType::LIMIT;
-            
-            sameSideBook[order.price].push_back(remainingOrder);
-            
-            // Add full ICEBERG order to tracking
+            if (order.side == Side::BUY) {
+                bids[order.price].push_back(remainingOrder);
+            } else {
+                asks[order.price].push_back(remainingOrder);
+            }
             addToIcebergTrackingOnly(order);
-            
             Logger::getInstance().logRestingOrder(remainingOrder);
             Benchmark::getInstance().incrementCounter("Orders_Resting");
-            
             if (order.userId == 0) {
                 std::cout << "[ICEBERG] Your ICEBERG " << ((order.side == Side::BUY) ? "BUY" : "SELL")
                           << " order placed. Showing " << remainingOrder.quantity 
@@ -135,12 +137,13 @@ void OrderBook::match(const Order& order, const std::function<void(double)>& onM
         } else if (order.type == OrderType::LIMIT) {
             Order remainingOrder = order;
             remainingOrder.quantity = remainingQty;
-
-            sameSideBook[order.price].push_back(remainingOrder);
-            
+            if (order.side == Side::BUY) {
+                bids[order.price].push_back(remainingOrder);
+            } else {
+                asks[order.price].push_back(remainingOrder);
+            }
             Logger::getInstance().logRestingOrder(remainingOrder);
             Benchmark::getInstance().incrementCounter("Orders_Resting");
-            
             if (order.userId == 0) {
                 std::cout << "[RESTING] Your " << ((order.side == Side::BUY) ? "BUY" : "SELL")
                           << " order for " << remainingQty << " units @ $" << order.price 
